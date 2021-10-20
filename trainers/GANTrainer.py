@@ -203,10 +203,6 @@ class GANTrainer:
 
             out_gen = self.generator(input, z)
 
-            print(out_gen.device)
-            print(target.device)
-            print('\n')
-
             # MAKE PREDICTIONS
             real_pred = self.discriminator(target)
             fake_pred = self.discriminator(out_gen)
