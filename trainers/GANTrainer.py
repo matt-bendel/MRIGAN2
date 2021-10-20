@@ -195,7 +195,7 @@ class GANTrainer:
         disc_output_cat = torch.cat((disc_output_1, disc_output_2, disc_output_3, disc_output_4))
 
         adversarial_loss = -torch.mean(disc_output_cat)
-        mean_loss = -10 * ssim_tensor(target, mean_tensor)
+        mean_loss = -100 * ssim_tensor(target, mean_tensor)
         # variance_loss = F.l1_loss(variance_2c_batch, variance_gt)
         g_loss = adversarial_loss + mean_loss
 
