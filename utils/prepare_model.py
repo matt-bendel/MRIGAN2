@@ -118,6 +118,7 @@ def fresh_start(args):
     discriminator = build_discriminator(args)
 
     if args.data_parallel:
+        print('DATA PARALLEL')
         generator = torch.nn.DataParallel(generator)
         discriminator = torch.nn.DataParallel(discriminator)
 
