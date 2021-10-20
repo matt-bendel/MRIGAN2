@@ -37,7 +37,7 @@ def prep_input_2_chan(data_tensor):
         output_tensor[:, :, :, 0] = output[0:8, :, :]
         output_tensor[:, :, :, 1] = output[8:16, :, :]
         output_x = transforms.ifft2c(output_tensor)
-        output_x = transforms.rss_complex(output_x)
+        output_x = transforms.rss(output_x)
         # REMOVE BELOW TWO LINES TO GO BACK UP
         output_x_r = cv2.resize(output_x[:, :, 0].numpy(), dsize=(96, 96), interpolation=cv2.INTER_LINEAR)
         output_x_c = cv2.resize(output_x[:, :, 1].numpy(), dsize=(96, 96), interpolation=cv2.INTER_LINEAR)
