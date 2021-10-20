@@ -38,7 +38,7 @@ def plot_epoch(args, generator, epoch, CONSTANT_PLOTS):
     mean = CONSTANT_PLOTS['mean']
 
     z_1 = CONSTANT_PLOTS['measures'].unsqueeze(0).to(args.device)
-    z = torch.FloatTensor(np.random.normal(size=(z_1.shape[0], args.latent_size))).to(args.device)
+    z = (0.001 ** 0.5) * torch.randn((1, args.latent_size)).to(args.device)
 
     generator.eval()
     with torch.no_grad():
