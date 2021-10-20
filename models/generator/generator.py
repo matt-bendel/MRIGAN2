@@ -3,9 +3,18 @@ Copyright (c) Facebook, Inc. and its affiliates.
 
 This source code is licensed under the MIT license found in the
 LICENSE file in the root directory of this source tree.
+
+NOTE: z_location tells the network where to use the latent variable. It has options:
+    0: No latent vector
+    1: Add latent vector to zero filled areas
+    2: Add latent vector to middle of network (between encoder and decoder)
+    3: Add as an extra input channel
 """
 
 import torch
+
+import numpy as np
+
 from torch import nn
 from torch.nn import functional as F
 
@@ -16,7 +25,7 @@ class ResidualBlock(nn.Module):
     instance normalization, relu activation and dropout.
     """
 
-    def __init__(self, in_chans, out_chans, norm=True):
+    def __init__(self, in_chans, out_chans, batch_norm=True, down=True):
         """
         Args:
             in_chans (int): Number of channels in the input.
@@ -26,22 +35,19 @@ class ResidualBlock(nn.Module):
 
         self.in_chans = in_chans
         self.out_chans = out_chans
-        self.norm = norm
+        self.batch_norm = batch_norm
 
         if self.in_chans != self.out_chans:
             self.out_chans = self.in_chans
 
-        # self.norm = nn.BatchNorm2d(self.out_chans)
-        self.conv_1_x_1 = nn.Conv2d(self.out_chans, self.out_chans, kernel_size=(1, 1))
+        self.norm = nn.BatchNorm2d(self.out_chans)
+        self.conv_1_x_1 = nn.Conv2d(self.in_chans, self.out_chans, kernel_size=(1, 1))
         self.layers = nn.Sequential(
-            # nn.LeakyReLU(negative_slope=0.2),
-            nn.Conv2d(self.out_chans, self.out_chans, kernel_size=(3, 3), padding=1),
+            nn.LeakyReLU(negative_slope=0.2),
+            nn.Conv2d(self.in_chans, self.out_chans, kernel_size=(3, 3), padding=1),
             nn.BatchNorm2d(self.out_chans),
             nn.LeakyReLU(negative_slope=0.2),
-            nn.Conv2d(self.out_chans, self.out_chans, kernel_size=(3, 3), padding=1),
-        )
-        self.final_act = nn.Sequential(
-            nn.LeakyReLU(negative_slope=0.2)
+            nn.Conv2d(self.in_chans, self.out_chans, kernel_size=(3, 3), padding=1),
         )
 
     def forward(self, input):
@@ -53,37 +59,28 @@ class ResidualBlock(nn.Module):
             (torch.Tensor): Output tensor of shape [batch_size, self.out_chans, height, width]
         """
         output = input
-        # if self.norm:
-        #     output = self.norm(input)
+        if self.batch_norm:
+            output = self.norm(input)
 
-        return self.final_act(torch.add(self.layers(output), self.conv_1_x_1(output)))
+        return self.layers(output) + self.conv_1_x_1(output)
 
 
-class ConvBlock(nn.Module):
-    """
-    A Convolutional Block that consists of two convolution layers each followed by
-    instance normalization, relu activation and dropout.
-    """
-
-    def __init__(self, in_chans, out_chans, drop_prob, norm=True):
+class FullDownBlock(nn.Module):
+    def __init__(self, in_chans, out_chans):
         """
         Args:
             in_chans (int): Number of channels in the input.
             out_chans (int): Number of channels in the output.
-            drop_prob (float): Dropout probability.
         """
         super().__init__()
-
         self.in_chans = in_chans
         self.out_chans = out_chans
-        self.drop_prob = drop_prob
 
-        self.layers = nn.Sequential(
-            nn.Conv2d(in_chans, out_chans, kernel_size=3, padding=1),
-            nn.BatchNorm2d(out_chans),
-            nn.LeakyReLU(negative_slope=0.2),
+        self.downsample = nn.Sequential(
+            nn.AvgPool2d(kernel_size=(2, 2), stride=2),
+            nn.Conv2d(self.in_chans, self.out_chans, kernel_size=(3, 3), padding=1),
         )
-        self.res = ResidualBlock(out_chans, out_chans, norm=norm)
+        self.resblock = ResidualBlock(self.out_chans, self.out_chans, True)
 
     def forward(self, input):
         """
@@ -93,50 +90,76 @@ class ConvBlock(nn.Module):
         Returns:
             (torch.Tensor): Output tensor of shape [batch_size, self.out_chans, height, width]
         """
-        return self.res(self.layers(input))
+
+        return self.resblock(self.downsample(input))
 
     def __repr__(self):
-        return f'ConvBlock(in_chans={self.in_chans}, out_chans={self.out_chans}, ' \
-               f'drop_prob={self.drop_prob})'
+        return f'AvgPool(in_chans={self.in_chans}, out_chans={self.out_chans}\nResBlock(in_chans={self.out_chans}, out_chans={self.out_chans}'
+
+
+class FullUpBlock(nn.Module):
+    def __init__(self, in_chans, out_chans):
+        """
+        Args:
+            in_chans (int): Number of channels in the input.
+            out_chans (int): Number of channels in the output.
+        """
+        super().__init__()
+        self.in_chans = in_chans
+        self.out_chans = out_chans
+
+        self.upsample = nn.Sequential(
+            nn.Conv2d(self.in_chans, self.out_chans, kernel_size=(3, 3), padding=1),
+        )
+
+        self.resblock = ResidualBlock(self.out_chans * 2, self.out_chans * 2, True, down=False)
+
+    def forward(self, input, old):
+        """
+        Args:
+            input (torch.Tensor): Input tensor of shape [batch_size, self.in_chans, height, width]
+
+        Returns:
+            (torch.Tensor): Output tensor of shape [batch_size, self.out_chans, height, width]
+        """
+        output = self.upsample(input)
+        output = torch.cat([output, old], dim=1)
+        return self.resblock(output)
+
+    def __repr__(self):
+        return f'AvgPool(in_chans={self.in_chans}, out_chans={self.out_chans}\nResBlock(in_chans={self.out_chans}, out_chans={self.out_chans}'
 
 
 class GeneratorModel(nn.Module):
-    """
-    PyTorch implementation of a U-Net model.
-
-    This is based on:
-        Olaf Ronneberger, Philipp Fischer, and Thomas Brox. U-net: Convolutional networks
-        for biomedical image segmentation. In International Conference on Medical image
-        computing and computer-assisted intervention, pages 234–241. Springer, 2015.
-    """
-
-    def __init__(self, in_chans, out_chans, z_location, latent_size=None):
+    def __init__(self, in_chans, out_chans, z_location, model_type, latent_size=None):
         """
         Args:
             in_chans (int): Number of channels in the input to the U-Net model.
             out_chans (int): Number of channels in the output to the U-Net model.
-            chans (int): Number of output channels of the first convolution layer.
-            num_pool_layers (int): Number of down-sampling and up-sampling layers.
-            drop_prob (float): Dropout probability.
         """
         super().__init__()
-        chans = 32
-        num_pool_layers = 5
 
         self.in_chans = in_chans
         self.out_chans = out_chans
-        self.chans = chans
-        self.num_pool_layers = num_pool_layers
         self.z_location = z_location
+        self.model_type = model_type
         self.latent_size = latent_size
 
-        self.down_sample_layers = nn.ModuleList([ConvBlock(in_chans, chans, 0, norm=False)])
-        ch = chans
-        for i in range(num_pool_layers - 1):
-            self.down_sample_layers += [ConvBlock(ch, ch * 2, 0)]
-            ch *= 2
+        self.initial_layers = nn.Sequential(
+            nn.Conv2d(self.in_chans, 16, kernel_size=(3, 3), padding=1),  # 384x384
+            ResidualBlock(16, 16, False),
+        )
 
-        if z_location == 1:  # Concatenate z
+        self.encoder_layers = nn.ModuleList()
+        # self.encoder_layers += [FullDownBlock(32, 64)]  # 192x192
+        # self.encoder_layers += [FullDownBlock(16, 32)]  # 96x96
+        self.encoder_layers += [FullDownBlock(16, 32)]  # 48x48
+        self.encoder_layers += [FullDownBlock(32, 64)]  # 24x24
+        self.encoder_layers += [FullDownBlock(64, 128)]  # 12x12
+        self.encoder_layers += [FullDownBlock(128, 256)]  # 6x6
+        self.encoder_layers += [FullDownBlock(256, 512)]  # 3x3
+
+        if z_location == 1:
             self.middle_z_grow_conv = nn.Sequential(
                 nn.Conv2d(latent_size // 4, latent_size // 2, kernel_size=(3, 3), padding=1),
                 nn.BatchNorm2d(latent_size // 2),
@@ -148,58 +171,58 @@ class GeneratorModel(nn.Module):
             self.middle_z_grow_linear = nn.Sequential(
                 nn.Linear(latent_size, latent_size // 4 * 3 * 3),
                 nn.LeakyReLU(negative_slope=0.2),
+                # nn.Linear(latent_size * 3, latent_size * 3 * 3),
+                # nn.LeakyReLU(negative_slope=0.2)
             )
-            self.conv = nn.Sequential(
-                nn.Conv2d(ch + latent_size, ch, kernel_size=(3, 3), padding=1),
+            self.middle = nn.Sequential(
                 nn.LeakyReLU(negative_slope=0.2),
-                ConvBlock(ch, ch, 0)
+                nn.Conv2d(512 + latent_size, 512, kernel_size=(3,3), padding=1),
+                ResidualBlock(512, 512)
             )
-        else:  # Add z if 2, add to all second half resolutions if 3
-            self.conv = ConvBlock(ch, ch, 0)  # 6x6
+        else:
+            self.middle = ResidualBlock(512, 512)  # 6x6
 
-        self.up_sample_layers = nn.ModuleList()
-        for i in range(num_pool_layers - 1):
-            self.up_sample_layers += [ConvBlock(ch * 2, ch // 2, 0)]
-            ch //= 2
-        self.up_sample_layers += [ConvBlock(ch * 2, ch, 0)]
-        self.conv2 = nn.Sequential(
-            nn.Conv2d(ch, ch // 2, kernel_size=1),
+        self.decoder_layers = nn.ModuleList()
+        self.decoder_layers += [FullUpBlock(512, 256)]  # 12x12
+        self.decoder_layers += [FullUpBlock(256 * 2, 128)]  # 12x12
+        self.decoder_layers += [FullUpBlock(128 * 2, 64)]  # 24x24
+        self.decoder_layers += [FullUpBlock(64 * 2, 32)]  # 48x48
+        self.decoder_layers += [FullUpBlock(32 * 2, 16)]  # 96x96
+        # self.decoder_layers += [FullUpBlock(32 * 2, 16)]  # 192x192
+        # self.decoder_layers += [FullUpBlock(16 * 2, 8)]  # 384x384
+
+        self.final_conv = nn.Sequential(
+            nn.Conv2d(32, 8, kernel_size=(3, 3), padding=1),
             nn.LeakyReLU(negative_slope=0.2),
-            nn.Conv2d(ch // 2, out_chans, kernel_size=1),
+            nn.Conv2d(8, self.out_chans, kernel_size=(1, 1)),
             nn.Tanh()
         )
 
-    def forward(self, input, z):
-        """
-        Args:
-            input (torch.Tensor): Input tensor of shape [batch_size, self.in_chans, height, width]
-
-        Returns:
-            (torch.Tensor): Output tensor of shape [batch_size, self.out_chans, height, width]
-        """
-        stack = []
+    def forward(self, input, z, device=None):
         output = input
+        output = self.initial_layers(output)
+
+        stack = []
+        stack.append(output)
+
         # Apply down-sampling layers
-        for layer in self.down_sample_layers:
+        for layer in self.encoder_layers:
             output = layer(output)
             stack.append(output)
-            output = F.max_pool2d(output, kernel_size=2)
 
+        stack.pop()
         if self.z_location == 1:
             z_out = self.middle_z_grow_linear(z)
             z_out = torch.reshape(z_out, (output.shape[0], self.latent_size // 4, 3, 3))
             z_out = self.middle_z_grow_conv(z_out)
             output = torch.cat([output, z_out], dim=1)
-            output = self.conv(output)
-        elif self.z_location == 2:
-            output = self.conv(torch.add(output, z))
+            output = self.middle(output)
         else:
-            output = self.conv(output)
+            output = self.middle(output)
 
         # Apply up-sampling layers
-        for layer in self.up_sample_layers:
+        for layer in self.decoder_layers:
             output = F.interpolate(output, scale_factor=2, mode='bilinear', align_corners=False)
-            output = torch.cat([output, stack.pop()], dim=1)
-            output = layer(output)
+            output = layer(output, stack.pop())
 
-        return self.conv2(output)
+        return self.final_conv(output)
