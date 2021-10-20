@@ -60,7 +60,7 @@ class DataTransform:
         numcoil = 8
         mask = np.tile(samp, (numcoil, 1, 1)).transpose((1, 2, 0)).astype(np.float32)
 
-        kspace = transforms.to_tensor(kspace)
+        kspace = kspace.transpose(1, 2, 0)
 
         x = ifft(kspace, (0, 1))  # (768, 396, 16)
 
