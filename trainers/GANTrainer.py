@@ -146,7 +146,7 @@ class GANTrainer:
 
     def get_zero_z(self, batch_len):
         if self.args.z_location == 1:
-            z = torch.zeros((batch_len, self.args.latent_size))
+            z = torch.zeros((batch_len, self.args.latent_size)).to(self.args.device)
         elif self.args.z_location == 2:
             # TODO: NEEDS CHANGED AT HIGHER RESOLUTION
             z = torch.zeros((batch_len, 512, 3, 3))
@@ -157,7 +157,12 @@ class GANTrainer:
 
     def get_z(self, batch_len):
         if self.args.z_location == 1:
-            z = (0.001 ** 0.5) * torch.randn((batch_len, self.args.latent_size)).to(self.args.device)
+            z = torch.FloatTensor(
+                np.random.normal(
+                    size=(batch_len, self.args.latent_size),
+                    scale=np.sqrt(0.001)
+                )
+            ).to(self.args.device)
         elif self.args.z_location == 2:
             # TODO: NEEDS CHANGED AT HIGHER RESOLUTION
             z = (0.001 ** 0.5) * torch.randn((batch_len, 512, 3, 3)).to(self.args.device)
@@ -171,7 +176,7 @@ class GANTrainer:
 
         # mean = self.generator(input, self.get_zero_z(input.shape[0]))
 
-        recon_list = []
+        # recon_list = []
         # variance_tensor = torch.zeros(input.shape)
         # mean_tensor = torch.zeros(input.shape).to(self.args.device)
         # for i in range(self.args.num_recons):
