@@ -22,6 +22,7 @@ import pytorch_ssim
 
 import numpy as np
 import torch.autograd as autograd
+import matplotlib.pyplot as plt
 
 from typing import Optional
 from utils.transforms import complex_abs
@@ -29,7 +30,6 @@ from utils.prepare_data import create_data_loaders
 from utils.prepare_model import resume_train, fresh_start
 from utils.temp_helper import prep_input_2_chan
 from utils.plotting import plot_epoch
-from torch.nn import functional as F
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 
 
@@ -168,6 +168,7 @@ class GANTrainer:
 
     def train_gen(self, input, target):
         self.optimizer_G.zero_grad()
+        print(input.shape)
 
         # mean = self.generator(input, self.get_zero_z(input.shape[0]))
 
@@ -195,10 +196,12 @@ class GANTrainer:
         # disc_output_cat = torch.cat((disc_output_1, disc_output_2))  # , disc_output_3, disc_output_4))
         z = self.get_z(input.shape[0])
         output = self.generator(input, z)
+
+        disc_out = self.discriminator(output)
         # adversarial_loss = -torch.mean(disc_output_cat)
         # mean_loss = -10 * ssim_tensor(target, mean_tensor)
         # variance_loss = F.l1_loss(variance_2c_batch, variance_gt)
-        g_loss = -torch.mean(output)  # + -10 * ssim_tensor(target, mean_tensor)
+        g_loss = -torch.mean(disc_out)  # + -10 * ssim_tensor(target, mean_tensor)
 
         g_loss.backward()
         self.optimizer_G.step()
@@ -256,6 +259,12 @@ class GANTrainer:
                 self.CONSTANT_PLOTS['std'] = std.cpu()[2]
                 self.CONSTANT_PLOTS['gt'] = target.cpu()[2]
                 self.first = False
+
+                im = complex_abs(self.CONSTANT_PLOTS['measures'][2].permute(1, 2, 0)).numpy()
+
+                plt.figure()
+                plt.imshow(np.abs(im), cmap='gray')
+                plt.savefig('temp.png')
 
             d_loss, d_acc = self.train_dis(prepped, target)
             g_loss = self.train_gen(prepped, target)
