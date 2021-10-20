@@ -244,8 +244,8 @@ class GANTrainer:
             g_loss = self.train_gen(prepped, target)
 
             batch_loss['d_acc'].append(d_acc)
-            batch_loss['g_loss'].append(g_loss.item())
-            batch_loss['d_loss'].append(d_loss.item())
+            batch_loss['g_loss'].append(g_loss)
+            batch_loss['d_loss'].append(d_loss)
 
             print(
                 "[Epoch %d/%d] [Batch %d/%d] [D loss: %.4f] [G loss: %.4f]"
