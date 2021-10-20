@@ -91,8 +91,7 @@ class ConvBlock(nn.Module):
         Returns:
             (torch.Tensor): Output tensor of shape [batch_size, self.out_chans, height, width]
         """
-        # return self.res(self.layers(input))
-        return self.layers(input)
+        return self.res(self.layers(input))
 
     def __repr__(self):
         return f'ConvBlock(in_chans={self.in_chans}, out_chans={self.out_chans}, ' \
