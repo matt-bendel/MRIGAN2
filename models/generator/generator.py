@@ -77,7 +77,9 @@ class ConvBlock(nn.Module):
             nn.Conv2d(in_chans, out_chans, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_chans),
             nn.ReLU(),
-            nn.Conv2d(out_chans, out_chans, kernel_size=3, padding=1)
+            nn.Conv2d(out_chans, out_chans, kernel_size=3, padding=1),
+            nn.BatchNorm2d(out_chans),
+            nn.ReLU()
         )
         self.res = ResidualBlock(out_chans, out_chans)
 
@@ -89,7 +91,8 @@ class ConvBlock(nn.Module):
         Returns:
             (torch.Tensor): Output tensor of shape [batch_size, self.out_chans, height, width]
         """
-        return self.res(self.layers(input))
+        # return self.res(self.layers(input))
+        return self.layers(input)
 
     def __repr__(self):
         return f'ConvBlock(in_chans={self.in_chans}, out_chans={self.out_chans}, ' \

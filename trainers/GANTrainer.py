@@ -28,6 +28,7 @@ from utils.transforms import complex_abs
 from utils.prepare_data import create_data_loaders
 from utils.prepare_model import resume_train, fresh_start
 from utils.temp_helper import prep_input_2_chan
+from utils.plotting import plot_epoch
 from torch.nn import functional as F
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 
@@ -91,6 +92,14 @@ class GANTrainer:
                                                 betas=(args.beta_1, args.beta_2))
 
         self.train_loader, self.dev_loader = create_data_loaders(args)
+
+        self.first = True
+        self.CONSTANT_PLOTS = {
+            'measures': None,
+            'mean': None,
+            'std': None,
+            'gt': None
+        }
 
         if self.args.pretrained:
             temp = None
@@ -240,6 +249,13 @@ class GANTrainer:
             prepped = prep_input_2_chan(input, self.args.device)
             target = prep_input_2_chan(target, self.args.device)
 
+            if self.first:
+                self.CONSTANT_PLOTS['measures'] = prepped.cpu()[2]
+                self.CONSTANT_PLOTS['mean'] = mean.cpu()[2]
+                self.CONSTANT_PLOTS['std'] = std.cpu()[2]
+                self.CONSTANT_PLOTS['gt'] = target.cpu()[2]
+                self.first = False
+
             d_loss, d_acc = self.train_dis(prepped, target)
             g_loss = self.train_gen(prepped, target)
 
@@ -319,3 +335,5 @@ class GANTrainer:
             self.save_model(self.args, epoch, self.generator, self.optimizer_G, best_loss_val, best_model, 'generator')
             self.save_model(self.args, epoch, self.discriminator, self.optimizer_D, best_loss_val, best_model,
                             'discriminator')
+
+            plot_epoch(self.args, self.generator, epoch, self.CONSTANT_PLOTS)
