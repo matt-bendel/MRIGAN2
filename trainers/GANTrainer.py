@@ -173,31 +173,32 @@ class GANTrainer:
 
         recon_list = []
         # variance_tensor = torch.zeros(input.shape)
-        mean_tensor = torch.zeros(input.shape).to(self.args.device)
-        for i in range(self.args.num_recons):
-            z = self.get_z(input.shape[0])
-            gen_val = self.generator(input, z)
-            mean_tensor = torch.add(mean_tensor, gen_val)
-            # variance_tensor = variance_tensor + (gen_val - mean) ** 2
-            recon_list.append(self.generator(input, z))
+        # mean_tensor = torch.zeros(input.shape).to(self.args.device)
+        # for i in range(self.args.num_recons):
+        #     z = self.get_z(input.shape[0])
+        #     gen_val = self.generator(input, z)
+        #     mean_tensor = torch.add(mean_tensor, gen_val)
+        #     # variance_tensor = variance_tensor + (gen_val - mean) ** 2
+        #     recon_list.append(self.generator(input, z))
 
-        mean_tensor = torch.div(mean_tensor, self.args.num_recons)
+        # mean_tensor = torch.div(mean_tensor, self.args.num_recons)
         # variance_tensor = variance_tensor / self.args.num_recons
 
         # variance_2c_batch = torch.mean(variance_tensor, dim=(2, 3))
         # variance_gt = 0.25 * torch.ones(variance_2c_batch.shape)
 
-        inds = np.random.choice(self.args.num_recons, 4)
-        disc_output_1 = self.discriminator(recon_list[inds[0]])
-        disc_output_2 = self.discriminator(recon_list[inds[1]])
+        # inds = np.random.choice(self.args.num_recons, 4)
+        # disc_output_1 = self.discriminator(recon_list[inds[0]])
+        # disc_output_2 = self.discriminator(recon_list[inds[1]])
         # disc_output_3 = self.discriminator(recon_list[inds[2]])
         # disc_output_4 = self.discriminator(recon_list[inds[3]])
-        disc_output_cat = torch.cat((disc_output_1, disc_output_2))  # , disc_output_3, disc_output_4))
-
+        # disc_output_cat = torch.cat((disc_output_1, disc_output_2))  # , disc_output_3, disc_output_4))
+        z = self.get_z(input.shape[0])
+        output = self.generator(input, z)
         # adversarial_loss = -torch.mean(disc_output_cat)
         # mean_loss = -10 * ssim_tensor(target, mean_tensor)
         # variance_loss = F.l1_loss(variance_2c_batch, variance_gt)
-        g_loss = -torch.mean(disc_output_cat) + -10 * ssim_tensor(target, mean_tensor)
+        g_loss = -torch.mean(output)  # + -10 * ssim_tensor(target, mean_tensor)
 
         g_loss.backward()
         self.optimizer_G.step()

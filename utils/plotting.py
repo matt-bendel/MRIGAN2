@@ -42,7 +42,7 @@ def plot_epoch(args, generator, epoch, CONSTANT_PLOTS):
 
     generator.eval()
     with torch.no_grad():
-        z_1_out = generator(input=z_1, z=z, device=args.device)
+        z_1_out = generator(input=z_1, z=z)
 
     target_prep = CONSTANT_PLOTS['gt']
     zfr = CONSTANT_PLOTS['measures']

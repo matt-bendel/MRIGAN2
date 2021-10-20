@@ -16,7 +16,7 @@ class ResidualBlock(nn.Module):
     instance normalization, relu activation and dropout.
     """
 
-    def __init__(self, in_chans, out_chans):
+    def __init__(self, in_chans, out_chans, norm=True):
         """
         Args:
             in_chans (int): Number of channels in the input.
@@ -26,6 +26,7 @@ class ResidualBlock(nn.Module):
 
         self.in_chans = in_chans
         self.out_chans = out_chans
+        self.norm = norm
 
         if self.in_chans != self.out_chans:
             self.out_chans = self.in_chans
@@ -52,7 +53,9 @@ class ResidualBlock(nn.Module):
         Returns:
             (torch.Tensor): Output tensor of shape [batch_size, self.out_chans, height, width]
         """
-        output = self.norm(input)
+        output = input
+        if self.norm:
+            output = self.norm(input)
 
         return self.final_act(torch.add(self.layers(output), self.conv_1_x_1(output)))
 
@@ -63,7 +66,7 @@ class ConvBlock(nn.Module):
     instance normalization, relu activation and dropout.
     """
 
-    def __init__(self, in_chans, out_chans, drop_prob):
+    def __init__(self, in_chans, out_chans, drop_prob, norm=True):
         """
         Args:
             in_chans (int): Number of channels in the input.
@@ -84,7 +87,7 @@ class ConvBlock(nn.Module):
             # nn.BatchNorm2d(out_chans),
             # nn.LeakyReLU(negative_slope=0.2)
         )
-        self.res = ResidualBlock(out_chans, out_chans)
+        self.res = ResidualBlock(out_chans, out_chans, norm=norm)
 
     def forward(self, input):
         """
@@ -131,7 +134,7 @@ class GeneratorModel(nn.Module):
         self.z_location = z_location
         self.latent_size = latent_size
 
-        self.down_sample_layers = nn.ModuleList([ConvBlock(in_chans, chans, 0)])
+        self.down_sample_layers = nn.ModuleList([ConvBlock(in_chans, chans, 0, norm=False)])
         ch = chans
         for i in range(num_pool_layers - 1):
             self.down_sample_layers += [ConvBlock(ch, ch * 2, 0)]
