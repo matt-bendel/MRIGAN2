@@ -5,7 +5,7 @@ import random
 import numpy as np
 
 from trainers.GANTrainer import GANTrainer
-from utils.training.parse_args import create_arg_parser
+from utils.parse_args import create_arg_parser
 
 if __name__ == '__main__':
     cuda = True if torch.cuda.is_available() else False
