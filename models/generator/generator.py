@@ -81,10 +81,10 @@ class ConvBlock(nn.Module):
             nn.BatchNorm2d(out_chans),
             nn.LeakyReLU(negative_slope=0.2),
             nn.Conv2d(out_chans, out_chans, kernel_size=3, padding=1),
-            # nn.BatchNorm2d(out_chans),
-            # nn.LeakyReLU(negative_slope=0.2)
+            nn.BatchNorm2d(out_chans),
+            nn.LeakyReLU(negative_slope=0.2)
         )
-        self.res = ResidualBlock(out_chans, out_chans)
+        # self.res = ResidualBlock(out_chans, out_chans)
 
     def forward(self, input):
         """
@@ -94,7 +94,7 @@ class ConvBlock(nn.Module):
         Returns:
             (torch.Tensor): Output tensor of shape [batch_size, self.out_chans, height, width]
         """
-        return self.res(self.layers(input))
+        return self.layers(input)
 
     def __repr__(self):
         return f'ConvBlock(in_chans={self.in_chans}, out_chans={self.out_chans}, ' \
@@ -140,8 +140,10 @@ class GeneratorModel(nn.Module):
         if z_location == 1:  # Concatenate z
             self.middle_z_grow_conv = nn.Sequential(
                 nn.Conv2d(latent_size // 4, latent_size // 2, kernel_size=(3, 3), padding=1),
+                nn.BatchNorm2d(latent_size // 2),
                 nn.LeakyReLU(negative_slope=0.2),
                 nn.Conv2d(latent_size // 2, latent_size, kernel_size=(3, 3), padding=1),
+                nn.BatchNorm2d(latent_size),
                 nn.LeakyReLU(negative_slope=0.2),
             )
             self.middle_z_grow_linear = nn.Sequential(
@@ -150,7 +152,6 @@ class GeneratorModel(nn.Module):
             )
             self.conv = nn.Sequential(
                 nn.Conv2d(ch + latent_size, ch, kernel_size=(3, 3), padding=1),
-                nn.BatchNorm2d(latent_size),
                 nn.LeakyReLU(negative_slope=0.2),
                 ConvBlock(ch, ch, 0)
             )

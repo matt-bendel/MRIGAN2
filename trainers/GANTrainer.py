@@ -190,14 +190,14 @@ class GANTrainer:
         inds = np.random.choice(self.args.num_recons, 4)
         disc_output_1 = self.discriminator(recon_list[inds[0]])
         disc_output_2 = self.discriminator(recon_list[inds[1]])
-        disc_output_3 = self.discriminator(recon_list[inds[2]])
-        disc_output_4 = self.discriminator(recon_list[inds[3]])
-        disc_output_cat = torch.cat((disc_output_1, disc_output_2, disc_output_3, disc_output_4))
+        # disc_output_3 = self.discriminator(recon_list[inds[2]])
+        # disc_output_4 = self.discriminator(recon_list[inds[3]])
+        disc_output_cat = torch.cat((disc_output_1, disc_output_2))  # , disc_output_3, disc_output_4))
 
-        adversarial_loss = -torch.mean(disc_output_cat)
-        mean_loss = -100 * ssim_tensor(target, mean_tensor)
+        # adversarial_loss = -torch.mean(disc_output_cat)
+        # mean_loss = -10 * ssim_tensor(target, mean_tensor)
         # variance_loss = F.l1_loss(variance_2c_batch, variance_gt)
-        g_loss = adversarial_loss + mean_loss
+        g_loss = -torch.mean(disc_output_cat) + -10 * ssim_tensor(target, mean_tensor)
 
         g_loss.backward()
         self.optimizer_G.step()
@@ -222,7 +222,7 @@ class GANTrainer:
             d_acc = (real_acc + fake_acc) / 32
 
             # Gradient penalty
-            gradient_penalty =self. compute_gradient_penalty(self.discriminator, target.data, out_gen.data)
+            gradient_penalty = self.compute_gradient_penalty(self.discriminator, target.data, out_gen.data)
             # Adversarial loss
             d_loss = torch.mean(fake_pred) - torch.mean(real_pred) + self.lambda_gp * gradient_penalty
 
