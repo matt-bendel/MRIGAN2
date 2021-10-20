@@ -260,7 +260,7 @@ class GANTrainer:
                 self.CONSTANT_PLOTS['gt'] = target.cpu()[2]
                 self.first = False
 
-                im = complex_abs(self.CONSTANT_PLOTS['measures'][2].permute(1, 2, 0)).numpy()
+                im = complex_abs(self.CONSTANT_PLOTS['measures'].permute(1, 2, 0)).numpy()
 
                 plt.figure()
                 plt.imshow(np.abs(im), cmap='gray')
