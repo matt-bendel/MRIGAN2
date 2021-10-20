@@ -42,6 +42,8 @@ class ResidualBlock(nn.Module):
             nn.BatchNorm2d(self.out_chans),
         )
 
+        self.final_act = nn.LeakyReLU(negative_slope=0.2)
+
     def forward(self, input):
         """
         Args:
@@ -54,7 +56,7 @@ class ResidualBlock(nn.Module):
         # if self.norm:
         #     output = self.norm(input)
 
-        return torch.add(self.layers(output), input)
+        return self.final_act(torch.add(self.layers(output), input))
 
 
 class ConvBlock(nn.Module):
