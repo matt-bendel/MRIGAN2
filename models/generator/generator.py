@@ -123,6 +123,8 @@ class GeneratorModel(nn.Module):
         self.out_chans = out_chans
         self.chans = chans
         self.num_pool_layers = num_pool_layers
+        self.z_location = z_location
+        self.latent_size = latent_size
 
         self.down_sample_layers = nn.ModuleList([ConvBlock(in_chans, chans, 0)])
         ch = chans
