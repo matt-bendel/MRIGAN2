@@ -136,12 +136,12 @@ class GANTrainer:
                 'best_dev_loss': best_dev_loss,
                 'exp_dir': args.exp_dir
             },
-            f=args.exp_dir / args.network_input / str(args.z_location) / f'{m_type}_model.pt'
+            f=args.exp_dir / f'{m_type}_model.pt'
         )
 
         if is_new_best:
-            shutil.copyfile(args.exp_dir / args.network_input / str(args.z_location) / f'{m_type}_model.pt',
-                            args.exp_dir / args.network_input / str(args.z_location) / f'{m_type}_best_model.pt'
+            shutil.copyfile(args.exp_dir / f'{m_type}_model.pt',
+                            args.exp_dir / f'{m_type}_best_model.pt'
                             )
 
     def get_zero_z(self, batch_len):
@@ -310,11 +310,6 @@ class GANTrainer:
     def train(self):
         best_loss = 0
         for epoch in range(self.args.num_epochs):
-            batch_loss = {
-                'g_loss': [],
-                'd_loss': [],
-                'd_acc': []
-            }
             self.train_epoch(epoch)
 
             ssim_val, psnr = self.validate_epoch()

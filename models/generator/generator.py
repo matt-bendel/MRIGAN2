@@ -39,7 +39,10 @@ class ResidualBlock(nn.Module):
             nn.LeakyReLU(negative_slope=0.2),
             nn.Conv2d(self.in_chans, self.out_chans, kernel_size=(3, 3), padding=1),
         )
-        self.final_act = nn.ReLU()
+        self.final_act = nn.Sequential(
+            nn.BatchNorm2d(self.out_chans),
+            nn.LeakyReLU(negative_slope=0.2)
+        )
 
     def forward(self, input):
         """
@@ -78,8 +81,8 @@ class ConvBlock(nn.Module):
             nn.BatchNorm2d(out_chans),
             nn.LeakyReLU(negative_slope=0.2),
             nn.Conv2d(out_chans, out_chans, kernel_size=3, padding=1),
-            nn.BatchNorm2d(out_chans),
-            nn.LeakyReLU(negative_slope=0.2)
+            # nn.BatchNorm2d(out_chans),
+            # nn.LeakyReLU(negative_slope=0.2)
         )
         self.res = ResidualBlock(out_chans, out_chans)
 
