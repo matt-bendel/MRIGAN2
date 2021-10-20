@@ -50,6 +50,8 @@ def create_arg_parser():
     parser.add_argument('--z-location', type=int, required=True, help='Where to put code vector')
     parser.add_argument('--pretrained', action='store_true', help='Whether or not to freeze left half weights')
     parser.add_argument('--num_recons', type=int, default=4, help='Number of recons')
+    parser.add_argument('--in-chans', type=int, default=2, help='Number of input channels')
+    parser.add_argument('--out-chans', type=int, default=2, help='Number of output channels')
 
     # LEARNING ARGS
     parser.add_argument('--batch-size', default=16, type=int, help='Mini batch size')
