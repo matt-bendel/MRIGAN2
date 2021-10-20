@@ -29,7 +29,7 @@ from utils.transforms import complex_abs
 from utils.prepare_data import create_data_loaders
 from utils.prepare_model import resume_train, fresh_start
 from utils.temp_helper import prep_input_2_chan, readd_measures_im
-from utils.plotting import plot_epoch
+from utils.plotting import generate_error_map, generate_image
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 
 
@@ -245,7 +245,6 @@ class GANTrainer:
 
     def train_epoch(self, epoch):
         self.generator.train()
-        self.discriminator.train()
 
         batch_loss = {
             'g_loss': [],
@@ -293,7 +292,6 @@ class GANTrainer:
 
     def validate_epoch(self):
         self.generator.eval()
-        self.discriminator.eval()
 
         mSSIM = []
         mPSNR = []
@@ -325,6 +323,44 @@ class GANTrainer:
 
         return np.mean(mSSIM), np.mean(mPSNR)
 
+    def plot_epoch(self, epoch):
+        std = self.CONSTANT_PLOTS['std']
+        mean = self.CONSTANT_PLOTS['mean']
+
+        z_1 = self.CONSTANT_PLOTS['measures'].unsqueeze(0).to(self.args.device)
+        z = self.get_z(1)
+
+        with torch.no_grad():
+            z_1_out = self.generator(input=z_1, z=z)
+
+        target_prep = self.CONSTANT_PLOTS['gt']
+        zfr = self.CONSTANT_PLOTS['measures']
+        z_1_prep = z_1_out[0]
+
+        print(z_1_prep.shape)
+
+        target_im = complex_abs(target_prep.permute(1, 2, 0)) * std + mean
+        target_im = target_im.numpy()
+
+        zfr = complex_abs(zfr.permute(1, 2, 0)) * std + mean
+        zfr = zfr.numpy()
+
+        z_1_im = complex_abs(z_1_prep.permute(1, 2, 0)) * std + mean
+        z_1_im = z_1_im.detach().cpu().numpy()
+
+        fig = plt.figure(figsize=(18, 9))
+        fig.suptitle(f'Generated and GT Images at Epoch {epoch + 1}')
+        generate_image(fig, target_im, target_im, 'GT', 1)
+        generate_image(fig, target_im, zfr, 'ZFR', 2)
+        generate_image(fig, target_im, z_1_im, 'Z 1', 3)
+
+        max_val = np.max(np.abs(target_im - zfr))
+        generate_error_map(fig, target_im, zfr, 5, 1, max_val)
+        generate_error_map(fig, target_im, z_1_im, 6, 1, max_val)
+
+        plt.savefig(
+            f'/home/bendel.8/Git_Repos/MRIGAN2/training_images/gen_{self.args.z_location}_{epoch + 1}.png')
+
     def train(self):
         best_loss = 0
         for epoch in range(self.args.num_epochs):
@@ -349,4 +385,4 @@ class GANTrainer:
             self.save_model(self.args, epoch, self.discriminator, self.optimizer_D, best_loss_val, best_model,
                             'discriminator')
 
-            plot_epoch(self.args, self.generator, epoch, self.CONSTANT_PLOTS)
+            self.plot_epoch(epoch)
