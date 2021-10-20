@@ -168,7 +168,6 @@ class GANTrainer:
 
     def train_gen(self, input, target):
         self.optimizer_G.zero_grad()
-        print(input.shape)
 
         # mean = self.generator(input, self.get_zero_z(input.shape[0]))
 

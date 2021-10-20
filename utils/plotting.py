@@ -46,7 +46,7 @@ def plot_epoch(args, generator, epoch, CONSTANT_PLOTS):
 
     target_prep = CONSTANT_PLOTS['gt']
     zfr = CONSTANT_PLOTS['measures']
-    z_1_prep = z_1_out
+    z_1_prep = z_1_out[0]
 
     target_im = complex_abs(target_prep.permute(1, 2, 0)) * std + mean
     target_im = target_im.numpy()
