@@ -5,7 +5,7 @@ import numpy as np
 from utils.espirit import ifft, fft
 from utils import transforms
 from torch.utils.data import DataLoader
-from slicer import SelectiveSliceData, SelectiveSliceData_Val
+from utils.slicer import SelectiveSliceData, SelectiveSliceData_Val
 
 
 class DataTransform:
