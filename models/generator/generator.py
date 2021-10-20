@@ -31,17 +31,16 @@ class ResidualBlock(nn.Module):
         if self.in_chans != self.out_chans:
             self.out_chans = self.in_chans
 
-        self.norm = nn.BatchNorm2d(self.out_chans)
-        self.conv_1_x_1 = nn.Conv2d(self.in_chans, self.out_chans, kernel_size=(1, 1))
+        # self.norm = nn.BatchNorm2d(self.out_chans)
+        self.conv_1_x_1 = nn.Conv2d(self.out_chans, self.out_chans, kernel_size=(1, 1))
         self.layers = nn.Sequential(
-            nn.LeakyReLU(negative_slope=0.2),
-            nn.Conv2d(self.in_chans, self.out_chans, kernel_size=(3, 3), padding=1),
+            # nn.LeakyReLU(negative_slope=0.2),
+            nn.Conv2d(self.out_chans, self.out_chans, kernel_size=(3, 3), padding=1),
             nn.BatchNorm2d(self.out_chans),
             nn.LeakyReLU(negative_slope=0.2),
-            nn.Conv2d(self.in_chans, self.out_chans, kernel_size=(3, 3), padding=1),
+            nn.Conv2d(self.out_chans, self.out_chans, kernel_size=(3, 3), padding=1),
         )
         self.final_act = nn.Sequential(
-            nn.BatchNorm2d(self.out_chans),
             nn.LeakyReLU(negative_slope=0.2)
         )
 
@@ -54,8 +53,8 @@ class ResidualBlock(nn.Module):
             (torch.Tensor): Output tensor of shape [batch_size, self.out_chans, height, width]
         """
         output = input
-        if self.norm:
-            output = self.norm(input)
+        # if self.norm:
+        #     output = self.norm(input)
 
         return self.final_act(torch.add(self.layers(output), self.conv_1_x_1(output)))
 
@@ -80,14 +79,10 @@ class ConvBlock(nn.Module):
         self.drop_prob = drop_prob
 
         self.layers = nn.Sequential(
-            nn.Conv2d(in_chans, out_chans, kernel_size=3, padding=1),
-            nn.BatchNorm2d(out_chans),
-            nn.LeakyReLU(negative_slope=0.2),
-            nn.Conv2d(out_chans, out_chans, kernel_size=3, padding=1),
-            # nn.BatchNorm2d(out_chans),
-            # nn.LeakyReLU(negative_slope=0.2)
+            ResidualBlock(out_chans, out_chans, norm=norm),
+            ResidualBlock(out_chans, out_chans, norm=norm)
         )
-        self.res = ResidualBlock(out_chans, out_chans, norm=norm)
+        # self.res = ResidualBlock(out_chans, out_chans, norm=norm)
 
     def forward(self, input):
         """
@@ -97,7 +92,7 @@ class ConvBlock(nn.Module):
         Returns:
             (torch.Tensor): Output tensor of shape [batch_size, self.out_chans, height, width]
         """
-        return self.res(self.layers(input))
+        return self.layers(input)
 
     def __repr__(self):
         return f'ConvBlock(in_chans={self.in_chans}, out_chans={self.out_chans}, ' \
