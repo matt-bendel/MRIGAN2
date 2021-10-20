@@ -168,7 +168,6 @@ class GeneratorModel(nn.Module):
         self.up_sample_layers += [ConvBlock(ch * 2, ch, 0)]
         self.conv2 = nn.Sequential(
             nn.Conv2d(ch, ch // 2, kernel_size=1),
-            nn.BatchNorm2d(ch // 2),
             nn.LeakyReLU(negative_slope=0.2),
             nn.Conv2d(ch // 2, out_chans, kernel_size=1),
             nn.Tanh()
