@@ -28,7 +28,7 @@ from typing import Optional
 from utils.transforms import complex_abs
 from utils.prepare_data import create_data_loaders
 from utils.prepare_model import resume_train, fresh_start
-from utils.temp_helper import prep_input_2_chan
+from utils.temp_helper import prep_input_2_chan, readd_measures_im
 from utils.plotting import plot_epoch
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 
@@ -196,6 +196,8 @@ class GANTrainer:
         z = self.get_z(input.shape[0])
         output = self.generator(input, z)
 
+        output = readd_measures_im(output, input, self.args.device)
+
         disc_out = self.discriminator(output)
         # adversarial_loss = -torch.mean(disc_output_cat)
         # mean_loss = -10 * ssim_tensor(target, mean_tensor)
@@ -214,6 +216,8 @@ class GANTrainer:
             self.optimizer_D.zero_grad()
 
             out_gen = self.generator(input, z)
+
+            out_gen = readd_measures_im(out_gen, input, self.args.device)
 
             # MAKE PREDICTIONS
             real_pred = self.discriminator(target)

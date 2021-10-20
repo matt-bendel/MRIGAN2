@@ -5,9 +5,10 @@ import numpy as np
 
 from utils import transforms
 
-def readd_measures_im(data_tensor, old, args):
+
+def readd_measures_im(data_tensor, old, device):
     im_size = 96
-    disc_inp = torch.zeros(data_tensor.shape[0], 2, im_size, im_size).to(args.device)
+    disc_inp = torch.zeros(data_tensor.shape[0], 2, im_size, im_size).to(device)
 
     for k in range(data_tensor.shape[0]):
         output = torch.squeeze(data_tensor[k])
