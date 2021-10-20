@@ -164,7 +164,7 @@ class GANTrainer:
 
         recon_list = []
         # variance_tensor = torch.zeros(input.shape)
-        mean_tensor = torch.zeros(input.shape)
+        mean_tensor = torch.zeros(input.shape).to(self.args.device)
         for i in range(self.args.num_recons):
             z = self.get_z(input.shape[0])
             gen_val = self.generator(input, z)
