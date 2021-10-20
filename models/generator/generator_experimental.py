@@ -32,16 +32,14 @@ class ResidualBlock(nn.Module):
             self.out_chans = self.in_chans
 
         # self.norm = nn.BatchNorm2d(self.out_chans)
-        self.conv_1_x_1 = nn.Conv2d(self.out_chans, self.out_chans, kernel_size=(1, 1))
+        # self.conv_1_x_1 = nn.Conv2d(self.out_chans, self.out_chans, kernel_size=(1, 1))
         self.layers = nn.Sequential(
             # nn.LeakyReLU(negative_slope=0.2),
             nn.Conv2d(self.out_chans, self.out_chans, kernel_size=(3, 3), padding=1),
             nn.BatchNorm2d(self.out_chans),
             nn.LeakyReLU(negative_slope=0.2),
             nn.Conv2d(self.out_chans, self.out_chans, kernel_size=(3, 3), padding=1),
-        )
-        self.final_act = nn.Sequential(
-            nn.LeakyReLU(negative_slope=0.2)
+            nn.BatchNorm2d(self.out_chans),
         )
 
     def forward(self, input):
@@ -56,7 +54,7 @@ class ResidualBlock(nn.Module):
         # if self.norm:
         #     output = self.norm(input)
 
-        return self.final_act(torch.add(self.layers(output), self.conv_1_x_1(output)))
+        return torch.add(self.layers(output), input)
 
 
 class ConvBlock(nn.Module):
@@ -80,7 +78,7 @@ class ConvBlock(nn.Module):
 
         self.layers = nn.Sequential(
             nn.Conv2d(in_chans, out_chans, kernel_size=3, padding=1),
-            nn.BatchNorm2d(out_chans),
+            # nn.BatchNorm2d(out_chans),
             nn.LeakyReLU(negative_slope=0.2),
         )
         self.res = ResidualBlock(out_chans, out_chans, norm=norm)
