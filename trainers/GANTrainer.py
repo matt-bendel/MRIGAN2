@@ -16,13 +16,9 @@ SPECIFICATIONS FOR TRAINING:
   - 8 per coil for real values
   - 8 per coil for complex values
 """
-import pathlib
-import logging
-import pickle
-import random
-import os
 import shutil
 import torch
+import pytorch_ssim
 
 import numpy as np
 import torch.autograd as autograd
@@ -86,6 +82,12 @@ def ssim(
     )
 
     return ssim
+
+
+def ssim_tensor(gt, pred):
+    """ Compute Normalized Mean Squared Error (NMSE) """
+    ssim_loss = pytorch_ssim.SSIM()
+    return ssim_loss(gt, pred)
 
 
 class GANTrainer:
@@ -159,37 +161,35 @@ class GANTrainer:
     def train_gen(self, input, target):
         self.optimizer_G.zero_grad()
 
-        mean = self.generator(input, self.get_zero_z(input.shape[0]))
+        # mean = self.generator(input, self.get_zero_z(input.shape[0]))
 
         recon_list = []
-        variance_tensor = torch.zeros(recon_list[0].shape)
-
+        # variance_tensor = torch.zeros(input.shape)
+        mean_tensor = torch.zeros(input.shape)
         for i in range(self.args.num_recons):
             z = self.get_z(input.shape[0])
             gen_val = self.generator(input, z)
-            variance_tensor = variance_tensor + (gen_val - mean) ** 2
+            mean_tensor = torch.add(mean_tensor, gen_val)
+            # variance_tensor = variance_tensor + (gen_val - mean) ** 2
             recon_list.append(self.generator(input, z))
 
-        variance_tensor = variance_tensor / self.args.num_recons
+        mean_tensor = torch.div(mean_tensor, self.args.num_recons)
+        # variance_tensor = variance_tensor / self.args.num_recons
 
-        variance_2c_batch = torch.mean(variance_tensor, dim=(2, 3))
-        variance_gt = 0.25 * torch.ones(variance_2c_batch.shape)
+        # variance_2c_batch = torch.mean(variance_tensor, dim=(2, 3))
+        # variance_gt = 0.25 * torch.ones(variance_2c_batch.shape)
 
-        inds = np.random.choice(self.args.num_recons, 2)
+        inds = np.random.choice(self.args.num_recons, 4)
         disc_output_1 = self.discriminator(recon_list[inds[0]])
         disc_output_2 = self.discriminator(recon_list[inds[1]])
-        disc_output_cat = torch.cat(disc_output_1, disc_output_2)
+        disc_output_3 = self.discriminator(recon_list[inds[2]])
+        disc_output_4 = self.discriminator(recon_list[inds[3]])
+        disc_output_cat = torch.cat((disc_output_1, disc_output_2, disc_output_3, disc_output_4))
 
         adversarial_loss = -torch.mean(disc_output_cat)
-        mean_loss = 0.01 * F.l1_loss(mean, target)
-        variance_loss = F.l1_loss(variance_2c_batch, variance_gt)
-        g_loss = adversarial_loss + mean_loss + variance_loss
-
-        print(adversarial_loss.item())
-        print(mean_loss.item())
-        print(variance_loss.item())
-
-        exit()
+        mean_loss = -10*ssim_tensor(target, mean_tensor)
+        # variance_loss = F.l1_loss(variance_2c_batch, variance_gt)
+        g_loss = adversarial_loss + mean_loss
 
         g_loss.backward()
         self.optimizer_G.step()

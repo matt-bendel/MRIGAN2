@@ -1,6 +1,7 @@
 import torch
 import os
 import random
+import pathlib
 
 import numpy as np
 
@@ -12,6 +13,7 @@ if __name__ == '__main__':
     Tensor = torch.FloatTensor
 
     args = create_arg_parser().parse_args()
+    args.exp_dir = pathlib.Path('/home/bendel.8/Git_Repos/MRIGAN2/trained_models')
     # restrict visible cuda devices
     if args.data_parallel or (args.device >= 0):
         if not args.data_parallel:
