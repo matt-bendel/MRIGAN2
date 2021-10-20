@@ -241,12 +241,8 @@ class GANTrainer:
             input = input.to(self.args.device)
             target = target.to(self.args.device)
 
-            prepped = prep_input_2_chan(input)
-            target = prep_input_2_chan(target)
-
-            print(prepped.device)
-            print(target.device)
-            print('\n')
+            prepped = prep_input_2_chan(input, self.args.device)
+            target = prep_input_2_chan(target, self.args.device)
 
             d_loss, d_acc = self.train_dis(prepped, target)
             g_loss = self.train_gen(prepped, target)
@@ -279,8 +275,8 @@ class GANTrainer:
                 input = input.to(self.args.device)
                 target = target.to(self.args.device)
 
-                prepped = prep_input_2_chan(input)
-                target = prep_input_2_chan(target)
+                prepped = prep_input_2_chan(input, self.args.device)
+                target = prep_input_2_chan(target, self.args.device)
 
                 gen_out = self.generator(prepped, self.get_z(prepped.shape[0]))
 

@@ -27,9 +27,9 @@ def readd_measures_im(data_tensor, old, args):
     return disc_inp
 
 
-def prep_input_2_chan(data_tensor):
+def prep_input_2_chan(data_tensor, device):
     im_size = 96
-    disc_inp = torch.zeros(data_tensor.shape[0], 2, im_size, im_size)
+    disc_inp = torch.zeros(data_tensor.shape[0], 2, im_size, im_size).to(device)
 
     for k in range(data_tensor.shape[0]):
         output = torch.squeeze(data_tensor[k])

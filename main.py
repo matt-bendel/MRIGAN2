@@ -20,7 +20,6 @@ if __name__ == '__main__':
             os.environ['CUDA_VISIBLE_DEVICES'] = str(args.device)
         os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
         args.device = torch.device('cuda')
-        print(args.device)
     else:
         args.device = torch.device('cpu')
     random.seed(args.seed)
