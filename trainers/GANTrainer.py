@@ -201,7 +201,11 @@ class GANTrainer:
 
             self.optimizer_D.zero_grad()
 
-            out_gen = self.generator(input, z).to(self.args.device)
+            out_gen = self.generator(input, z)
+
+            print(out_gen.device)
+            print(target.device)
+            print('\n')
 
             # MAKE PREDICTIONS
             real_pred = self.discriminator(target)
@@ -213,8 +217,7 @@ class GANTrainer:
             d_acc = (real_acc + fake_acc) / 32
 
             # Gradient penalty
-            gradient_penalty =self. compute_gradient_penalty(self.discriminator, target.data,
-                                                        out_gen.data)
+            gradient_penalty =self. compute_gradient_penalty(self.discriminator, target.data, out_gen.data)
             # Adversarial loss
             d_loss = torch.mean(fake_pred) - torch.mean(real_pred) + self.lambda_gp * gradient_penalty
 
@@ -240,6 +243,10 @@ class GANTrainer:
 
             prepped = prep_input_2_chan(input)
             target = prep_input_2_chan(target)
+
+            print(prepped.device)
+            print(target.device)
+            print('\n')
 
             d_loss, d_acc = self.train_dis(prepped, target)
             g_loss = self.train_gen(prepped, target)
